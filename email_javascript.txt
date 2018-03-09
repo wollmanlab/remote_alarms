@@ -1,0 +1,203 @@
+function checkStatusOfAllLabDevices() {
+  
+  var start = new Date();
+  // devices - each device name is the label it gets in the gmail account.  
+  var devices = ["cryoplus","incubator/mufasa","incubator/timon","incubator/nala","incubator/pumba","minus80","minus_20_tall_1","minus_20_tall_2","wollmanlabserver"];  
+  var reportingtype = ["Boolean","Boolean","Boolean","Boolean","Boolean","Boolean","Temperature","Temperature","Server"]; 
+  var spreadsheetstatus = ["C2","C3","C4","C5","C6","C7","C8","C9","C10"]; 
+  var lastreport = ["D2","D3","D4","D5","D6","D7","D8","D9","D10"]; 
+   
+  var deadmanswitchdelay = 3; // hours
+                           
+  var devicestatus;  
+  var devicelabel;
+  
+  var ss = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1EwrXbQ0DDQ0LmQT0OZ_jR8LQn1u8QbbIwCFUJAgKtTs/edit');
+  var sheet = ss.getSheetByName("Devices");
+  var msg = "Working"; 
+  
+  for (i=0; i<devices.length; i++) {
+    
+    // check if the last report of this device indicates a problem
+    Logger.log(String.fromCharCode(13));
+    Logger.log("Checking device: " + devices[i] + " Time: " + (Date.now() - start.getTime())/1000 );
+    
+    // check if there is a known issue with the device
+    devicestatus = sheet.getRange(spreadsheetstatus[i]).getValue(); 
+    if (devicestatus=="Known Issue") { continue; } 
+    
+    // get the label 
+    devicelabel = "alerts/" + devices[i];
+    var label = GmailApp.getUserLabelByName(devicelabel);
+    var mostRecentThread = label.getThreads(0,1)[0]; 
+    
+    // activate "dead-man" switch if needed 
+    var lastReporting  = timeSinceLastReportingDone(mostRecentThread); 
+    Logger.log("last report was  : " + lastReporting + " hours ago"  + " Time: " + (Date.now() - start.getTime())/1000);
+    sheet.getRange(lastreport[i]).setValue(lastReporting); 
+    Logger.log("Time: " + (Date.now() - start.getTime())/1000);
+    if (lastReporting > deadmanswitchdelay) {
+      soundAlarms("Device " + devices[i] + " did not report status in the last " + lastReporting + " hours"); 
+      msg = "Not reporting"; 
+    } else {
+//      if (i==1) { 
+//        var stam=0; 
+//      }
+      msg = checkErrorMessage(label,mostRecentThread,reportingtype[i]);
+      Logger.log("after error checking Time: " + (Date.now() - start.getTime())/1000);
+      sheet.getRange(spreadsheetstatus[i]).setValue(msg);
+      Logger.log("after setting value Time: " + (Date.now() - start.getTime())/1000);
+    }
+  }
+}; 
+
+
+function soundAlarms(message) {
+
+  // get email addresses
+  var namespreadsheet = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1vHfT5MPXS-1faRCtToCsE8a9VPQ3o-E6-MVruje0zYA/edit');
+  var namesheet = namespreadsheet.getSheetByName("General info");
+  var emails = namesheet.getRange(2, 9, namesheet.getLastRow()).getValues(); 
+  
+  // Log alarm
+  Logger.log(message); 
+  
+  for (var i=0; i < emails.length; i++) {
+    if (! empty(emails[i][0]) && emails[i][0]!='amitkrkc@gmail.com') // SKIP sending to Amit's gmail 
+    {
+      GmailApp.sendEmail(emails[i][0], message, message);
+    }
+  }
+  
+  // log that alarm was sounded in the log spreadheet
+  logError(message)
+  
+  // SLACK
+  var slack = "https://hooks.slack.com/services/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";
+  
+  var error = {
+     "username" : "wollmanlab alarm system",
+     "text" : message // <-- required parameter
+  }
+  
+  sendToSlack(slack,error)
+  
+};
+
+function empty(e) {
+  switch (e) {
+    case "":
+    case 0:
+    case "0":
+    case null:
+    case false:
+    case typeof this == "undefined":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function logError(message) {
+  var datetolog = timenow(); 
+  var ss = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1EwrXbQ0DDQ0LmQT0OZ_jR8LQn1u8QbbIwCFUJAgKtTs/editq');
+  var sheet = ss.getSheetByName("ErrorLog");
+  sheet.getRange(sheet.getLastRow()+1,1).setValue(datetolog); 
+  sheet.getRange(sheet.getLastRow(),2).setValue(message); 
+
+};
+
+
+function sendToSlack(url,payload) {
+   var options =  {
+    "method" : "post",
+    "contentType" : "application/json",
+    "payload" : JSON.stringify(payload)
+  };
+  return UrlFetchApp.fetch(url, options)
+}
+
+
+function timenow(){
+    var now= new Date(), 
+    ampm= 'am', 
+    h= now.getHours(), 
+    m= now.getMinutes(), 
+    s= now.getSeconds();
+    if(h>= 12){
+        if(h>12) h -= 12;
+        ampm= 'pm';
+    }
+
+    if(m<10) m= '0'+m;
+    if(s<10) s= '0'+s;
+    return now.toLocaleDateString()+ ' ' + h + ':' + m + ':' + s + ' ' + ampm;
+}
+
+function timeSinceLastReportingDone(mostRecentThread) {
+
+  var timeSinceLastStatusEmail = (Date.now() - Date.parse(mostRecentThread.getLastMessageDate()))/3600000;
+  
+  //Logger.log(timeSinceLastStatusEmail);
+  return timeSinceLastStatusEmail; 
+};
+  
+
+
+function checkErrorMessage(label,mostRecentThread,devicetype) {
+
+  // get threads in the given label
+  var message = mostRecentThread.getMessages()[mostRecentThread.getMessageCount()-1];
+  var when = message.getDate(); 
+  var text = message.getBody();  
+  
+  // clean up the text to a status
+  var status = text.substr(text.indexOf(':')+1,text.length);
+  var indxof = status.indexOf('<'); 
+  if (indxof >= 0) {
+    status = status.substr(1,-1);
+  }
+  status = status.trim(); 
+  
+  var msg = "Working"; 
+  // check for specific error by device type; 
+  Logger.log(devicetype)
+  switch (devicetype) {
+    case "Temperature": 
+      if (status == 'Failure to read temperature') {
+        soundAlarms("Device " + label.getName() + " could not read temperature"); 
+      } else if (status > -10) {
+        msg = "Device " + label.getName() + "shows temporature of " + status + " which is above -10c"; 
+        Logger.log(msg)
+        soundAlarms(msg);
+      } else {
+        Logger.log(label.getName() + " report low temperature");  
+      }
+       
+      break;
+    case "Boolean": 
+      if (status == 'Alarm Reporting Not Functioning Properly') {
+        msg = "Status unknown - Monitoring system is down"; 
+        soundAlarms("Device " + label.getName() + " reported a general error indicating it was unable to verify its status"); 
+      } else if (status=="Remote Alarm Active") {
+        msg = "Device " + label.getName() + " failed and is reporting a problem" 
+        soundAlarms(msg);
+      } else {
+        Logger.log(label.getName() + " does not report on alarm temperature");  
+      }
+      break; 
+    case "Server": 
+      var splt=text.split(":"); 
+      msg=splt[1]; 
+      status=splt[0]; 
+      if (status == 'Error') {
+        soundAlarms(msg); 
+      } else { 
+        msg="Working"; 
+        Logger.log("Server reports all is fine")
+      }
+        
+  }
+    
+  return msg; 
+};
