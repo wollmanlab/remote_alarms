@@ -6,3 +6,7 @@ Temperature monitoring is accomplished using Waterproof DS18B20 Digital temperat
 https://www.adafruit.com/product/381
 
 Python scripts monitor the state of the NO and NC circuits in order to detect whether the device is an a normal or alarm state. These are relayed via email to a gmail account that is monitored by a javascript routine. This routine texts/emails/slacks individuals in the lab whenever a device responds in the alarm state or when a device fails to respond.
+
+https://docs.google.com/spreadsheets/d/1EwrXbQ0DDQ0LmQT0OZ_jR8LQn1u8QbbIwCFUJAgKtTs/edit?usp=sharing
+
+https://docs.google.com/spreadsheets/d/1vHfT5MPXS-1faRCtToCsE8a9VPQ3o-E6-MVruje0zYA/edit?usp=sharing
