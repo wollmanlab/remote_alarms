@@ -78,7 +78,21 @@ def sendMail(device, alarm):
     print('Sent mail to {0} with the message: \n{1}'.format(sendTo, msg))
     
 import subprocess
-def checkIP(interface = 'wlan0'):
+def checkIP(interface = 'eth0'):
+    """"
+    Check IP of device.
+    Allows easier ssh access since IP is not static.
+    
+    Parameters
+    ----------
+    interface : str
+        name of the network adapter in ifconfig to report.
+        
+    Returns
+    -------
+    ip : str
+        IP address of the interface adapter as a string
+    """"
     network_info = subprocess.Popen(['ifconfig', interface], stdout=subprocess.PIPE).communicate()[0]
     network_info = network_info.rstrip().split('\n')[1].strip(' ')
     ip = network_info.split(' ')[1].split(':')[1]
