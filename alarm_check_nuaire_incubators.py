@@ -6,8 +6,8 @@ device_map specifies a device name key with tuple of
 Rob Foreman October 2016 
 """
 import pi_remote_alarm as alarm
-import subprocess
 
+# Pins different incubators are connected to (NC, NO)
 device_map = {'mufasa': (11, 13), 'pumba': (8, 10), 'nala': (12, 16), 'timon': (18, 22)}
 
 try:
@@ -15,6 +15,7 @@ try:
 except:
     ip = 'unavailable'
 
+# Iterate over devices and check alarms inside try/except so if one fails they don't all fail.
 for device, pins in device_map.items():
     nc, no = pins
     alarm_state = alarm.checkRemoteAlarm(no, nc)
@@ -25,8 +26,3 @@ for device, pins in device_map.items():
         print(device, 'failed to send')
         continue
 
-
-#p = subprocess.Popen('ifconfig', shell=True, stdout=subprocess.PIPE)
-#data = p.communicate()
-
-#alarm.sendMail('IP:Incubators', data)
