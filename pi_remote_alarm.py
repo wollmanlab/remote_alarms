@@ -37,7 +37,8 @@ def checkRemoteAlarm(normally_open_pin, normally_closed_pin, setmode=pi.BOARD):
         pi.BOARD is the most consistent accross pi models.
     """
     pi.setmode(setmode)
-    pi.setup([normally_open_pin, normally_closed_pin], pi.IN, pull_up_down=pi.PUD_DOWN)
+    pi.setup(normally_open_pin, pi.IN, pull_up_down=pi.PUD_DOWN)
+    pi.setup(normally_closed_pin, pi.IN, pull_up_down=pi.PUD_DOWN)
     functioning_state = pi.input(normally_closed_pin)
     failure_state = pi.input(normally_open_pin)
     if functioning_state and not failure_state:
