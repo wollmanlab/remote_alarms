@@ -8,16 +8,19 @@ def checkDSBtemperature(device_name, base_pth = '/sys/bus/w1/devices/'):
         String containing the directory name of the device.
         Typically will be 28-xxxx where xxxx is randomly assigned.
     """
-    tfile = open("{0}{1}/w1_slave".format(base_pth, device_name))
-    # Read the file generated that contains the temperature information.
-    text = tfile.read()
-    tfile.close()
-    # Parse the file to extract the temperature information.
-    secondline = text.split("\n")[1]
-    temperaturedata = secondline.split(" ")[9]
-    # Convert to decimal format
-    temperature = float(temperaturedata[2:])
-    temperature = temperature/1000.
+    try:
+        tfile = open("{0}{1}/w1_slave".format(base_pth, device_name))
+        # Read the file generated that contains the temperature information.
+        text = tfile.read()
+        tfile.close()
+        # Parse the file to extract the temperature information.
+        secondline = text.split("\n")[1]
+        temperaturedata = secondline.split(" ")[9]
+        # Convert to decimal format
+        temperature = float(temperaturedata[2:])
+        temperature = temperature/1000.
+    except Exception as e:
+        temperature = str(e)
     return temperature
 
 import RPi.GPIO as pi
@@ -79,7 +82,7 @@ def sendMail(device, alarm):
     
 import subprocess
 def checkIP(interface = 'eth0'):
-    """"
+    """
     Check IP of device.
     Allows easier ssh access since IP is not static.
     
@@ -92,9 +95,12 @@ def checkIP(interface = 'eth0'):
     -------
     ip : str
         IP address of the interface adapter as a string
-    """"
-    network_info = subprocess.Popen(['ifconfig', interface], stdout=subprocess.PIPE).communicate()[0]
-    network_info = network_info.rstrip().split('\n')[1].strip(' ')
-    ip = network_info.split(' ')[1].split(':')[1]
+    """
+    try:
+        network_info = subprocess.Popen(['ifconfig', interface], stdout=subprocess.PIPE).communicate()[0]
+        network_info = network_info.rstrip().split('\n')[1].strip(' ')
+        ip = network_info.split(' ')[1].split(':')[1]
+    except Exception as e:
+        ip = str(e)
     return ip
     
