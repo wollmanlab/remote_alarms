@@ -3,9 +3,22 @@ from pi_remote_alarm import checkDSBtemperature, sendMail, checkRemoteAlarm, che
 no_pin = 10
 nc_pin = 8
 
-alarm = checkRemoteAlarm(no_pin, nc_pin)
+minus20_tall_2 = '28-00042b357fff'
+
+#Check IP Address
 ip = checkIP(interface='eth0')
-sendMail('minus80', alarm+'\n'+ip)
-print(alarm, ip)
+
+# Check minus80
+try:
+	minus80_alarm = checkRemoteAlarm(no_pin, nc_pin)
+	sendMail('minus80', minus80_alarm+'\n'+ip)
+except:
+	minus80_alarm = 'Failed to acquire minus80'
+# Check minus 20 tall 2
+minus20tall2_temp = checkDSBtemperature(minus20_tall_2)
+sendMail('minus_20_tall_2', str(minus20tall2_temp)+'\n'+ip)
+
+
+print(minus80_alarm, minus20tall2_temp,  ip)
 
 
