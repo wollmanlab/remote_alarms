@@ -71,7 +71,7 @@ def sendMail(device, alarm):
     # Configure email server
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
-    server.login("pi.wollmanlab", "trumpsucks")
+    server.login("pi.wollmanlab", "##########")
     sendFrom = "pi.wollmanlab@gmail.com"
     # Account to receive the email
     sendTo = "wollmanlab@g.ucla.edu"
